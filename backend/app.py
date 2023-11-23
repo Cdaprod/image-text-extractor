@@ -1,10 +1,10 @@
-#!/usr/local/bin python3
-# pip install flask streamlit requests BeautifulSoup4 pillow pytesseract pydantic
-
 from flask import Flask, request, jsonify
 import requests
 from bs4 import BeautifulSoup
-from PIL import Image as PILImage
+from urllib.parse import urljoin
+import asyncio
+import aiohttp
+from PIL import Image
 from io import BytesIO
 import pytesseract
 from pydantic import BaseModel
@@ -14,27 +14,32 @@ class TextSnippet(BaseModel):
     id: int
     extracted_text: str
 
-class Image(BaseModel):
-    url: str
-
 app = Flask(__name__)
+
+async def extract_text_from_image(session, url, id):
+    async with session.get(url) as response:
+        img_data = await response.read()
+        text = pytesseract.image_to_string(Image.open(BytesIO(img_data)))
+        return {"id": id, "extracted_text": text}
 
 @app.route('/extract-text', methods=['POST'])
 def extract_text():
-    image_data = Image(**request.json)
-    response = requests.get(image_data.url)
+    url = request.json['url']
+    response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
 
     images = soup.find_all('img')
-    image_texts = []
+    image_urls = [urljoin(url, img.get('src')) for img in images if img.get('src')]
 
-    for i, img in enumerate(images):
-        img_url = img.get('src')
-        if img_url and img_url.startswith('http'):
-            img_response = requests.get(img_url)
-            img_data = BytesIO(img_response.content)
-            text = pytesseract.image_to_string(PILImage.open(img_data))
-            image_texts.append(TextSnippet(id=i, extracted_text=text).dict())
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    async def process_images():
+        async with aiohttp.ClientSession() as session:
+            tasks = [extract_text_from_image(session, img_url, i) for i, img_url in enumerate(image_urls)]
+            return await asyncio.gather(*tasks)
+
+    image_texts = loop.run_until_complete(process_images())
 
     with open('screenshots.json', 'w') as file:
         json.dump(image_texts, file)
