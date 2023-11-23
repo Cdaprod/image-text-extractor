@@ -1,0 +1,20 @@
+name: Docker Compose Tests
+
+on: [push, pull_request]
+
+jobs:
+  test-docker-compose:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Build the Docker Compose stack
+      run: docker-compose up -d
+
+    # Add your docker-compose tests here
+    - name: Run Docker Compose Tests
+      run: |
+        echo "Run Docker Compose tests here"
+
+    - name: Clean up
+      run: docker-compose down

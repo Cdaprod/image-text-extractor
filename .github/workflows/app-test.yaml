@@ -1,0 +1,24 @@
+name: Application Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+
+    - name: Install Dependencies
+      run: |
+        pip install -r backend/requirements.txt
+        pip install -r frontend/requirements.txt
+
+    # Add your tests here
+    - name: Run Tests
+      run: |
+        echo "Run your tests here"
