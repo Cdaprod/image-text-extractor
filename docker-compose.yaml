@@ -3,14 +3,14 @@ services:
   flask-backend:
     build: 
       context: .
-      dockerfile: Dockerfile-flask
+      dockerfile: backend/Dockerfile-flask
     ports:
       - "5001:5001"
   
   streamlit-frontend:
     build: 
       context: .
-      dockerfile: Dockerfile-streamlit
+      dockerfile: frontend/Dockerfile-streamlit
     ports:
       - "8501:8501"
     depends_on:
